@@ -53,6 +53,7 @@ public:
 
     // events:
     bool sceneEvent(QEvent *event);
+    void mousePressEvent(QGraphicsSceneMouseEvent *event);
 
     // members/methods
     void setSpeed(const quint8 &speed);
@@ -86,6 +87,9 @@ public:
     void setLastPosition(const eCarPosition &lastPosition);
 
     quint8 getId() const;
+
+signals:
+    void signalCarClicked(int carId);
 
 public slots:
     void move();

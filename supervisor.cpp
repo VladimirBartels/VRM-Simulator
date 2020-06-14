@@ -25,7 +25,7 @@ Supervisor::Supervisor(Ui::MainWindow *ui) : _ui(ui)
     connect(this, SIGNAL(changed(const QList<QRectF> &)), this, SLOT(sceneChanged(const QList<QRectF> &)));
 
     // connect obstacleTimer with createObstacle slot
-    connect(_obstacleTimer, SIGNAL(timeout()), this, SLOT(createObstacle()));
+    connect(_obstacleTimer, SIGNAL(timeout()), this, SLOT(slotCreateObstacle()));
 
     _border = NULL;
     _garage.clear();
@@ -65,6 +65,12 @@ void Supervisor::createCase1()
     _border->setPos(BORDER_X, BORDER_Y);
     car1->setPos(getLeftSideX( BORDER_W, car1->rect().width()), BORDER_H - car1->rect().height() - 10);
     car2->setPos(getRightSideX(BORDER_W, car2->rect().width()), BORDER_H - car2->rect().height() - 10);
+
+    // to see a car statistics when a car is clicked
+    foreach (Car *car, _garage)
+    {
+        connect(car, SIGNAL(signalCarClicked(int)), this, SLOT(slotCarClicked(int)));
+    }
 }
 
 void Supervisor::createCase2()
@@ -93,8 +99,11 @@ void Supervisor::createCase2()
     _border->setPos(BORDER_X, BORDER_Y);
     car1->setPos(getRightSideX(BORDER_W, car1->rect().width()), BORDER_H - car1->rect().height() - 10);
 
-    qDebug() << "Border is: " + QString::number(_border->x()) + " " + QString::number(_border->y()) + " " + QString::number(_border->rect().height()) + " " + QString::number(_border->rect().width());
-    qDebug() << "Cars are : " + QString::number(car1->x()) + " " + QString::number(car1->y()) + " " + QString::number(car1->rect().height()) + " " + QString::number(car1->rect().width());
+    // to see a car statistics when a car is clicked
+    foreach (Car *car, _garage)
+    {
+        connect(car, SIGNAL(signalCarClicked(int)), this, SLOT(slotCarClicked(int)));
+    }
 }
 
 void Supervisor::createCase3()
@@ -127,10 +136,21 @@ void Supervisor::createCase3()
 
     // by moving items inside of a scene we will have a real position
     _border->setPos(BORDER_X, BORDER_Y);
-    car1->setPos(BORDER_W / 5 * 1 - car1->rect().width() / 2, BORDER_H - car1->rect().height() - 60);
+    //car1->setPos(BORDER_W / 5 * 1 - car1->rect().width() / 2, BORDER_H - car1->rect().height() - 60);
     car2->setPos(BORDER_W / 5 * 2 - car2->rect().width() / 2, BORDER_H - car1->rect().height() - 60);
-    car3->setPos(BORDER_W / 5 * 3 - car3->rect().width() / 2, BORDER_H - car1->rect().height() - 60);
+    //car3->setPos(BORDER_W / 5 * 3 - car3->rect().width() / 2, BORDER_H - car1->rect().height() - 60);
     car4->setPos(BORDER_W / 5 * 4 - car4->rect().width() / 2, BORDER_H - car1->rect().height() - 60);
+
+    car1->setRotation(car1->rotation() + 90);
+    car1->setPos(BORDER_W / 5 * car1->getId() - car1->rect().width() / 2, BORDER_H / 5 * car1->getId() - car1->rect().height());
+    car3->setRotation(car3->rotation() + 90);
+    car3->setPos(BORDER_W / 5 * car1->getId() - car1->rect().width() / 2, BORDER_H / 5 * car3->getId() - car3->rect().height());
+
+    // to see a car statistics when a car is clicked
+    foreach (Car *car, _garage)
+    {
+        connect(car, SIGNAL(signalCarClicked(int)), this, SLOT(slotCarClicked(int)));
+    }
 }
 
 void Supervisor::startStopCase()
@@ -158,7 +178,7 @@ void Supervisor::startStopCase()
         if (_isCaseStarted == false)
         {
             // launch first obstacle immediately and then each OBSTACLE resp time
-            createObstacle();
+            slotCreateObstacle();
             _obstacleTimer->start(OBSTACLE_RESPAWN);    // createObstacle() will be called every timeout
         }
         else
@@ -173,7 +193,7 @@ void Supervisor::startStopCase()
             foreach (Car *car, _garage)
             {
                 car->setDirection(eInAngle);
-                car->setRotation(car->rotation() -90 + qrand() % 180);
+                //car->setRotation(car->rotation() -90 + qrand() % 180);
                 car->start();
             }
         }
@@ -369,10 +389,13 @@ void Supervisor::sceneChanged(const QList<QRectF> &)
 {
     //qDebug() << "sceneChanged: Border is: " + QString::number(_border->x()) + " " + QString::number(_border->y()) + " " + QString::number(_border->rect().height()) + " " + QString::number(_border->rect().width());
 
+    // update statistics only fot selected car (_selectedCar)
+    updateCarStatistic();
+
     foreach (Car *car, _garage)
     {
         // <<< GENERAL BEHAVIOR >>>
-        {
+        {                     
             // a car can not go outside the border
             if ((car->direction() == eLeft) && (car->x() <= 0) )
             {
@@ -526,18 +549,19 @@ void Supervisor::sceneChanged(const QList<QRectF> &)
                 // set rotation only once in the beginning, but not every time while its rotating and its new position
                 if (car->direction() != eRotation && car->getLastPosition() != currentPosition)
                 {
-                    car->setLastPosition(eTop);
-                    qDebug() << "Supervisor::sceneChanged: TOP border, angle is " + QString::number(car->rotation());
+                    car->setLastPosition(eTop);                    
 
                     if (car->getRotation() <= 90)
                     {
-                        car->setRotationAngle(+90);
-                        //car->setRotationAngle(+45 + (qrand() % 45));
+                        //car->setRotationAngle(+90);
+                        car->setRotationAngle(+180);
+                        //maybe: car->setRotationAngle(+45 + (qrand() % 45));
                     }
                     else // car->getRotation() >= 270 && car->getRotation() <= 360
                     {
-                        car->setRotationAngle(-90);
-                        //car->setRotationAngle(-45 - (qrand() % 45));
+                        //car->setRotationAngle(-90);
+                        car->setRotationAngle(-180);
+                        //maybe: car->setRotationAngle(-45 - (qrand() % 45));
                     }
 
                     car->setDirection(eRotation);
@@ -551,16 +575,16 @@ void Supervisor::sceneChanged(const QList<QRectF> &)
                 if (car->direction() != eRotation && car->getLastPosition() != currentPosition)
                 {  
                     car->setLastPosition(eRightSide);
-                    qDebug() << "Supervisor::sceneChanged: RIGHT border, angle is " + QString::number(car->getRotation());
-                    qDebug() << "Supervisor::sceneChanged: car->x()+car->height = " + QString::number(car->x() + car->rect().height());
 
                     if (car->getRotation() > 90 && car->getRotation() <= 180)
                     {
-                        car->setRotationAngle(+90);
+                        //car->setRotationAngle(+90);
+                        car->setRotationAngle(+180);
                     }
                     else
                     {
-                        car->setRotationAngle(-90);
+                        //car->setRotationAngle(-90);
+                        car->setRotationAngle(-180);
                     }
 
                     car->setDirection(eRotation);
@@ -574,15 +598,16 @@ void Supervisor::sceneChanged(const QList<QRectF> &)
                 if (car->direction() != eRotation && car->getLastPosition() != currentPosition)
                 {
                     car->setLastPosition(eBottom);
-                    qDebug() << "Supervisor::sceneChanged: BOTTOM border, angle is " + QString::number(car->getRotation());
 
                     if (car->getRotation() > 180 && car->getRotation() <= 270)
                     {
-                        car->setRotationAngle(+90);
+                        //car->setRotationAngle(+90);
+                        car->setRotationAngle(+180);
                     }
                     else
                     {
-                        car->setRotationAngle(-90);
+                        //car->setRotationAngle(-90);
+                        car->setRotationAngle(-180);
                     }
 
                     car->setDirection(eRotation);
@@ -596,18 +621,46 @@ void Supervisor::sceneChanged(const QList<QRectF> &)
                 if (car->direction() != eRotation && car->getLastPosition() != currentPosition)
                 {
                     car->setLastPosition(eLeftSide);
-                    qDebug() << "Supervisor::sceneChanged: LEFT border, angle is " + QString::number(car->getRotation());
+                    //qDebug() << "Supervisor::sceneChanged: LEFT border, angle is " + QString::number(car->getRotation());
 
                     if (car->getRotation() > 270)
                     {
-                        car->setRotationAngle(+90);
+                        //car->setRotationAngle(+90);
+                        car->setRotationAngle(+180);
                     }
                     else
                     {
-                        car->setRotationAngle(-90);
+                        //car->setRotationAngle(-90);
+                        car->setRotationAngle(-180);
                     }
 
                     car->setDirection(eRotation);
+                }
+            }
+
+            // Feature: Cars Avoidance Systems:
+            foreach (QGraphicsItem* item, this->items())
+            {
+                // find all cars in the scene
+                if (typeid(*item) == typeid(Car))
+                {
+                    Car* ObstacleCar = (Car*)item;
+
+                    // obstacles are close
+                    if (car->y()-250 <= ObstacleCar->y())
+                    {
+                        // if car and obstacle are on the same lane
+                        if ( (car->x() + car->rect().width() >= ObstacleCar->x()) && (car->x() <= ObstacleCar->x() + ObstacleCar->rect().width()) )
+                        {
+                            //ObstacleCar->setColor(QColor(255, 100, 0));    // orange warning color
+
+                            if (_ui->radioButton_auto->isChecked() && car->y()-200 <= ObstacleCar->y())
+                            {
+
+                            }
+                        }
+
+                    }
                 }
             }
 
@@ -615,7 +668,7 @@ void Supervisor::sceneChanged(const QList<QRectF> &)
     }
 }
 
-void Supervisor::createObstacle()
+void Supervisor::slotCreateObstacle()
 {
     qDebug() << "Supervisor::createObstacle()";
 
@@ -632,11 +685,21 @@ void Supervisor::createObstacle()
     // do not need: this->addItem(obstacle);
 }
 
+void Supervisor::slotCarClicked(int carId)
+{
+    _selectedCar = carId;
+
+    updateCarStatistic();
+}
+
 void Supervisor::init()
 {
     _activeCase = 0;
+    _selectedCar = 0;
     _isCaseStarted = false;
     _border = nullptr;
+
+    updateCarStatistic();
 
     foreach (QGraphicsItem* item, this->items())
     {
@@ -670,5 +733,34 @@ qreal Supervisor::getRightSideX(qreal parentW, qreal childW)
     rightSideX = (parentW / 2) + ((parentW / 2) - childW) / 2;
 
     return rightSideX;
+}
+
+void Supervisor::updateCarStatistic()
+{
+    // if a car is selected (car id starts form 1) update statistic only for selected car
+    if (_selectedCar > 0 )
+    {
+        // find a car with this id and update statistic for it
+        foreach(Car* car, _garage)
+        {
+            if (car->getId() == _selectedCar)
+            {
+                _ui->label_carId_value->setText(QString::number(_selectedCar));
+                _ui->label_carX_value->setText(QString::number(car->x()));
+                _ui->label_carY_value->setText(QString::number(car->y()));
+                _ui->label_carAngle_value->setText(QString::number(car->getRotation()));
+                _ui->label_carDirection_value->setText(QString::number(car->direction()));
+                break;
+            }
+        }
+    }
+    else
+    {
+        _ui->label_carId_value->clear();
+        _ui->label_carX_value->clear();
+        _ui->label_carY_value->clear();
+        _ui->label_carAngle_value->clear();
+        _ui->label_carDirection_value->clear();
+    }
 }
 

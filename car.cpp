@@ -249,6 +249,15 @@ bool Car::sceneEvent(QEvent *event)
 //        }
 //    }
 
+    // call default event
     return QGraphicsRectItem::sceneEvent(event);
+}
+
+void Car::mousePressEvent(QGraphicsSceneMouseEvent *event)
+{
+    emit signalCarClicked(_id);
+
+    // call default event
+    QGraphicsItem::mousePressEvent(event);
 }
 
