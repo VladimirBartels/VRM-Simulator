@@ -85,6 +85,8 @@ public:
     eCarPosition getLastPosition() const;
     void setLastPosition(const eCarPosition &lastPosition);
 
+    quint8 getId() const;
+
 public slots:
     void move();
 

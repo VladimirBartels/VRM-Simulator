@@ -161,6 +161,11 @@ void Car::move()
     else {}
 }
 
+quint8 Car::getId() const
+{
+    return _id;
+}
+
 eCarPosition Car::getLastPosition() const
 {
     return _lastPosition;

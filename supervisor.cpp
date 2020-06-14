@@ -143,7 +143,6 @@ void Supervisor::startStopCase()
             {
                 car->start();
             }
-            _isCaseStarted = true;
         }
         else
         {
@@ -151,7 +150,6 @@ void Supervisor::startStopCase()
             {
                 car->stop();
             }
-            _isCaseStarted = false;
         }
 
     }
@@ -162,12 +160,10 @@ void Supervisor::startStopCase()
             // launch first obstacle immediately and then each OBSTACLE resp time
             createObstacle();
             _obstacleTimer->start(OBSTACLE_RESPAWN);    // createObstacle() will be called every timeout
-            _isCaseStarted = true;
         }
         else
         {
             _obstacleTimer->stop();
-            _isCaseStarted = false;
         }
     }
     else if (_activeCase == 3)
@@ -180,7 +176,6 @@ void Supervisor::startStopCase()
                 car->setRotation(car->rotation() -90 + qrand() % 180);
                 car->start();
             }
-            _isCaseStarted = true;
         }
         else
         {
@@ -188,9 +183,10 @@ void Supervisor::startStopCase()
             {
                 car->stop();
             }
-            _isCaseStarted = false;
         }
     }
+
+    _isCaseStarted = !_isCaseStarted;
 }
 
 void Supervisor::changeSpeed(qint8 speed)
@@ -251,6 +247,34 @@ void Supervisor::keyPressEvent(QKeyEvent *event)
         case Qt::Key_5:
             car->setSpeed(eUltraSound);
             break;
+        case Qt::Key_Up:
+            // if car's front side still inside of a border
+            if (car->y() > 0)
+            {
+                car->moveForward();
+            }
+            break;
+        case Qt::Key_Down:
+            // if car's rear side still inside of a border
+            if (car->y() + car->rect().height() < _border->rect().height())
+            {
+                car->moveBackward();
+            }
+            break;
+        case Qt::Key_Left:
+            // if car's left side still inside of a border
+            if (car->x() > 0)
+            {
+                car->moveLeft();
+            }
+            break;
+        case Qt::Key_Right:
+            // if car's right side still inside of a border
+            if (car->x() + car->rect().width() < _border->rect().width())
+            {
+                car->moveRight();
+            }
+            break;
         default:
             // do nothing
             break;
@@ -286,20 +310,7 @@ void Supervisor::keyPressEvent(QKeyEvent *event)
         {
             switch (event->key())
             {
-            case Qt::Key_Left:
-                // if car's left side still inside of a border
-                if (car->x() > 0)
-                {
-                    car->moveLeft();
-                }
-                break;
-            case Qt::Key_Right:
-                // if car's right side still inside of a border
-                if (car->x() + car->rect().width() < _border->rect().width())
-                {
-                    car->moveRight();
-                }
-                break;
+
             default:
                 // do nothing
                 break;
@@ -336,20 +347,6 @@ void Supervisor::keyPressEvent(QKeyEvent *event)
         // <<< FOR DEBUG PURPOSE >>>
         switch (event->key())
         {
-        case Qt::Key_Up:
-            // if car's front side still inside of a border
-            if (car->y() > 0)
-            {
-                car->moveForward();
-            }
-            break;
-        case Qt::Key_Down:
-            // if car's rear side still inside of a border
-            if (car->y() + car->rect().height() < _border->rect().height())
-            {
-                car->moveBackward();
-            }
-            break;
         case Qt::Key_A:
             car->setRotation(car->getRotation() - 10);
             qDebug() << "Supervisor::keyPressEvent: Key A: angle is " + QString::number(car->getRotation());
@@ -391,6 +388,7 @@ void Supervisor::sceneChanged(const QList<QRectF> &)
                     car->stop();
                 }
             }
+            // TODO: add top and bottom
 
             // Feature: Collision Detection with obstacles and other cars
             bool isCollided = false;
@@ -492,10 +490,6 @@ void Supervisor::sceneChanged(const QList<QRectF> &)
                             obstacle->setColor(Qt::gray);
                         }
                     }
-                    else
-                    {
-                        obstacle->setColor(Qt::gray);
-                    }
                 }
             }
 
@@ -524,6 +518,7 @@ void Supervisor::sceneChanged(const QList<QRectF> &)
         {
             eCarPosition currentPosition;
 
+            // Feature: Allowwing a car to turn when it close to the borders
             // if a car reached (almost: + car's height as buffer) TOP borders side
             if (car->y() - car->rect().height() <= 0)
             {
@@ -615,6 +610,7 @@ void Supervisor::sceneChanged(const QList<QRectF> &)
                     car->setDirection(eRotation);
                 }
             }
+
         }
     }
 }
