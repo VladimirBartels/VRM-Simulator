@@ -4,6 +4,7 @@
 #include <QGraphicsScene>
 #include <QGraphicsView>
 
+#define PI 3.14159265358979
 
 // set boarder's size: startX, StartY, Width, Height
 #define BORDER_X 25
@@ -15,6 +16,8 @@
 
 Supervisor::Supervisor(Ui::MainWindow *ui) : _ui(ui)
 {
+    qDebug() << "Supervisor::Supervisor";
+
     this->setSceneRect(0, 0, BORDER_W + 50, BORDER_H + 50);
     this->setFocus();
     this->setStickyFocus(true);
@@ -137,14 +140,16 @@ void Supervisor::createCase3()
     // by moving items inside of a scene we will have a real position
     _border->setPos(BORDER_X, BORDER_Y);
     //car1->setPos(BORDER_W / 5 * 1 - car1->rect().width() / 2, BORDER_H - car1->rect().height() - 60);
-    car2->setPos(BORDER_W / 5 * 2 - car2->rect().width() / 2, BORDER_H - car1->rect().height() - 60);
-    //car3->setPos(BORDER_W / 5 * 3 - car3->rect().width() / 2, BORDER_H - car1->rect().height() - 60);
-    car4->setPos(BORDER_W / 5 * 4 - car4->rect().width() / 2, BORDER_H - car1->rect().height() - 60);
+    car2->setPos(BORDER_W / 5 * 2 - car2->rect().width() / 2, BORDER_H - car2->rect().height() - 60);
+    //car3->setPos(BORDER_W / 5 * 3 - car3->rect().width() / 2, BORDER_H - car3->rect().height() - 60);
+    car4->setPos(BORDER_W / 5 * 4 - car4->rect().width() / 2, BORDER_H - car4->rect().height() - 60);
+
+    //car2->setRotation(car2->rotation() + 45);
 
     car1->setRotation(car1->rotation() + 90);
-    car1->setPos(BORDER_W / 5 * car1->getId() - car1->rect().width() / 2, BORDER_H / 5 * car1->getId() - car1->rect().height());
+    car1->setPos(BORDER_W / 5 * car1->getId() - car1->rect().width() / 2, BORDER_H / 5 * 1 + 50);
     car3->setRotation(car3->rotation() + 90);
-    car3->setPos(BORDER_W / 5 * car1->getId() - car1->rect().width() / 2, BORDER_H / 5 * car3->getId() - car3->rect().height());
+    car3->setPos(BORDER_W / 5 * 1 - car3->rect().width() / 2, BORDER_H / 5 * 3 );
 
     // to see a car statistics when a car is clicked
     foreach (Car *car, _garage)
@@ -537,7 +542,7 @@ void Supervisor::sceneChanged(const QList<QRectF> &)
 
 
         // <<< ONLY FOR CASE 3 >>>
-        if (_activeCase == 3)
+        if (_activeCase == 3 && _isCaseStarted)
         {
             eCarPosition currentPosition;
 
@@ -638,32 +643,50 @@ void Supervisor::sceneChanged(const QList<QRectF> &)
                 }
             }
 
-            // Feature: Cars Avoidance Systems:
-            foreach (QGraphicsItem* item, this->items())
+            // Feature: Cars Avoidance Systems:            
+            if (_ui->radioButton_auto->isChecked())
             {
-                // find all cars in the scene
-                if (typeid(*item) == typeid(Car))
+                bool isHindrance = false;
+                // check if there are any ObstacleCars
+                foreach (QGraphicsItem* item, this->items())
                 {
-                    Car* ObstacleCar = (Car*)item;
-
-                    // obstacles are close
-                    if (car->y()-250 <= ObstacleCar->y())
+                    // find all cars in the scene
+                    if (typeid(*item) == typeid(Car))
                     {
-                        // if car and obstacle are on the same lane
-                        if ( (car->x() + car->rect().width() >= ObstacleCar->x()) && (car->x() <= ObstacleCar->x() + ObstacleCar->rect().width()) )
+                        Car* ObstacleCar = (Car*)item;
+
+                        // if obstacle car is not a current car
+                        if (car->getId() != ObstacleCar->getId())
                         {
-                            //ObstacleCar->setColor(QColor(255, 100, 0));    // orange warning color
-
-                            if (_ui->radioButton_auto->isChecked() && car->y()-200 <= ObstacleCar->y())
+                            // if the distance between car's front left and obstacleCar front left point less than 100 and angle between 0 and 90 degrees
+                            if ( ((getDistanceBetweenPoints(car->x(), car->y(), ObstacleCar->x(), ObstacleCar->y()) < 100) &&
+                                  (getAngleBetweenPoints(car->x(), car->y(), ObstacleCar->x(), ObstacleCar->y()) > car->getRotation() ) &&
+                                  (getAngleBetweenPoints(car->x(), car->y(), ObstacleCar->x(), ObstacleCar->y()) < car->getRotation() + 90)) ||
+                            // if the distance between car's front left and obstacleCar front left point less than 100 and angle between 0 and 90 degrees
+                                 ((getDistanceBetweenPoints(car->x(), car->y(), ObstacleCar->getRearLeftX(), ObstacleCar->getRearLeftY()) < 100) &&
+                                  (getAngleBetweenPoints(car->x(), car->y(), ObstacleCar->getRearLeftX(), ObstacleCar->getRearLeftY()) > car->getRotation() ) &&
+                                  (getAngleBetweenPoints(car->x(), car->y(), ObstacleCar->getRearLeftX(), ObstacleCar->getRearLeftY()) < car->getRotation() + 90)))
                             {
+                                isHindrance = true;
 
+                                // if no obstacle detected yet
+                                if (car->isWaiting() == false)
+                                {
+                                    car->setIsWaiting(true);
+                                    car->setColor(Qt::black);
+                                }
                             }
                         }
-
                     }
                 }
-            }
 
+                // if there are no more ObstacleCars
+                if (isHindrance == false && car->isWaiting() == true)
+                {
+                    car->setIsWaiting(false);
+                    car->setDefaultColor();
+                }
+            }
         }
     }
 }
@@ -715,6 +738,8 @@ void Supervisor::init()
     {
         _obstacleTimer->stop();
     }
+
+    _ui->lineEdit_collisions->setText(QString::number(0));
 }
 
 qreal Supervisor::getLeftSideX(qreal parentW, qreal childW)
@@ -762,5 +787,28 @@ void Supervisor::updateCarStatistic()
         _ui->label_carAngle_value->clear();
         _ui->label_carDirection_value->clear();
     }
+}
+
+qreal Supervisor::getAngleBetweenPoints(qreal x1, qreal y1, qreal x2, qreal y2)
+{
+    qreal angle = 0;
+
+    angle = (atan2(y2 - y1, x2 - x1) * 180 / PI) + 90;
+
+    if (angle < 0)
+    {
+        angle = 360 + angle;
+    }
+
+    return angle;
+}
+
+qreal Supervisor::getDistanceBetweenPoints(qreal x1, qreal y1, qreal x2, qreal y2)
+{
+    qreal distance = 0;
+
+    distance = sqrt(pow(y2-y1, 2) + pow(x2-x1, 2));
+
+    return distance;
 }
 

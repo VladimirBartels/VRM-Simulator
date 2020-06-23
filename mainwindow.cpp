@@ -46,7 +46,7 @@ void MainWindow::on_tabWidget_tabBarClicked(int index)
     {
         //ui->view3->setFocusPolicy(Qt::StrongFocus);
         ui->horizontalSlider_speed->setValue(0);
-        ui->groupBox_OCS->setEnabled(false);
+        ui->groupBox_OCS->setEnabled(true);
         _supervisor->createCase3();
     }
 }

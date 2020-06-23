@@ -68,8 +68,10 @@ public:
     void moveRight();                   // move one step right
     void moveInAngle();                 // movement in rotation - only forward according to rotation angle
     bool isInMove();                    // check if a car is already moving
+    qreal getRearLeftX();               // get x oordinate of rear left point depending of the angle
+    qreal getRearLeftY();               // get y oordinate of rear left point depending of the angle
 
-    quint16 getRotation();              // convertor to default rect.Rotation. returns [0..359] grad
+    quint16 getRotation();              // returns rotateio angle, convertor to default rect.Rotation. returns [0..359] grad
 
     eCarDirection direction() const;
     void setDirection(const eCarDirection &direction);
@@ -88,6 +90,9 @@ public:
 
     quint8 getId() const;
 
+    bool isWaiting() const;
+    void setIsWaiting(bool isWaiting);
+
 signals:
     void signalCarClicked(int carId);
 
@@ -102,6 +107,7 @@ private:
     QTimer       *_moveTimer;         // a timer for car's movements
     bool          _isInMove;          // if a car is already in move or not
     bool          _isInCollision;     // is a car already and still in a caollision with obstacles or other cars
+    bool          _isWaiting;         // if a car is waiting as there are some obstacle on the right hand
     eCarDirection _direction;         // forward, backward, left, right
     qint16        _rotationAngle;     // rotation angle during a turn
     qint32        _colisionCounter;   // number of colisions with obstacles and other cars

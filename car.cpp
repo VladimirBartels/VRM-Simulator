@@ -1,7 +1,9 @@
 #include "car.h"
 #include "obstacle.h"
+
 #include <QPen>
 #include <QFont>
+#include <QtMath>
 #include <QDebug>
 
 #define LINEWIDTH       5   // line width of a car rect
@@ -18,6 +20,7 @@ Car::Car(qreal x, qreal y, qreal w, qreal h, QColor color, quint8 id, qint8 spee
     _moveTimer = new QTimer;
     _isInMove = false;
     _isInCollision = false;
+    _isWaiting = false;
     _direction = eForward;
     _rotationAngle = 0;
     _colisionCounter = 0;
@@ -111,13 +114,33 @@ void Car::moveRight()
 
 void Car::moveInAngle()
 {
-    // maps item's and parent's coordinate systems. Position schour be relative and NOT absolute
+    // this maps item's and parent's coordinate systems. Position should be relative and NOT absolute
     this->setPos(mapToParent(0, -MOVESTEP));
 }
 
 bool Car::isInMove()
 {
     return _isInMove;
+}
+
+qreal Car::getRearLeftX()
+{
+    qreal x = 0;
+    qreal angle = getRotation() + 180;
+
+    x = this->x() + sin(qDegreesToRadians(angle)) * this->rect().height();
+
+    return x;
+}
+
+qreal Car::getRearLeftY()
+{
+    qreal y = 0;
+    qreal angle = getRotation() + 180;
+
+    y = this->y() - cos(qDegreesToRadians(angle)) * this->rect().height();
+
+    return y;
 }
 
 quint16 Car::getRotation()
@@ -159,6 +182,31 @@ void Car::move()
         rotate();
     }
     else {}
+}
+
+bool Car::isWaiting() const
+{
+    return _isWaiting;
+}
+
+void Car::setIsWaiting(bool isWaiting)
+{
+    _isWaiting = isWaiting;
+
+    if (_isWaiting == true)
+    {
+        if (this->isInMove())
+        {
+            this->stop();
+        }
+    }
+    else
+    {
+        if (!this->isInMove())
+        {
+            this->start();
+        }
+    }
 }
 
 quint8 Car::getId() const

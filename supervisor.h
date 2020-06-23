@@ -32,6 +32,8 @@ private:
     qreal getLeftSideX(qreal parentW, qreal childW);    // get left side of a road/board
     qreal getRightSideX(qreal parentW, qreal childW);   // get right side of a road/board
     void updateCarStatistic();                          // updating car statistic (coordinates, angles, direction etc)
+    qreal getAngleBetweenPoints(qreal x1, qreal y1, qreal x2, qreal y2);
+    qreal getDistanceBetweenPoints(qreal x1, qreal y1, qreal x2, qreal y2);
 
     Ui::MainWindow *_ui;
     Border         *_border;        // main border is a map/world for all elements in it
