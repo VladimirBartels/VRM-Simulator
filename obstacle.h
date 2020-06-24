@@ -14,6 +14,8 @@ public:
     Obstacle(qreal x, qreal y, qreal w, qreal h, QColor color = Qt::gray, QGraphicsItem *parent = Q_NULLPTR);
 
     void setColor(QColor color);
+    void start();
+    void stop();
 
 public slots:
     void move();

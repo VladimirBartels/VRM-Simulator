@@ -43,3 +43,13 @@ void Obstacle::setColor(QColor color)
     // create brush to fill a car
     this->setBrush(QBrush(color.light(), Qt::SolidPattern));
 }
+
+void Obstacle::start()
+{
+    _moveTimer->start();
+}
+
+void Obstacle::stop()
+{
+    _moveTimer->stop();
+}

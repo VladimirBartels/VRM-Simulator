@@ -27,9 +27,6 @@ Supervisor::Supervisor(Ui::MainWindow *ui) : _ui(ui)
     // connect default changed signal with our sceneChanged slot
     connect(this, SIGNAL(changed(const QList<QRectF> &)), this, SLOT(sceneChanged(const QList<QRectF> &)));
 
-    // connect obstacleTimer with createObstacle slot
-    connect(_obstacleTimer, SIGNAL(timeout()), this, SLOT(slotCreateObstacle()));
-
     _border = NULL;
     _garage.clear();
 
@@ -72,7 +69,7 @@ void Supervisor::createCase1()
     // to see a car statistics when a car is clicked
     foreach (Car *car, _garage)
     {
-        connect(car, SIGNAL(signalCarClicked(int)), this, SLOT(slotCarClicked(int)));
+        connect(car, SIGNAL(signalCarClicked(int)), this, SLOT(slotCarClicked(int)), Qt::UniqueConnection);
     }
 }
 
@@ -105,8 +102,14 @@ void Supervisor::createCase2()
     // to see a car statistics when a car is clicked
     foreach (Car *car, _garage)
     {
-        connect(car, SIGNAL(signalCarClicked(int)), this, SLOT(slotCarClicked(int)));
+        connect(car, SIGNAL(signalCarClicked(int)), this, SLOT(slotCarClicked(int)), Qt::UniqueConnection);
     }
+
+    _obstacleTimer->setInterval(OBSTACLE_RESPAWN);
+
+    // connect obstacleTimer with createObstacle slot
+    connect(_obstacleTimer, SIGNAL(timeout()), this, SLOT(slotCreateObstacle()), Qt::UniqueConnection);
+
 }
 
 void Supervisor::createCase3()
@@ -151,15 +154,20 @@ void Supervisor::createCase3()
     car3->setRotation(car3->rotation() + 90);
     car3->setPos(BORDER_W / 5 * 1 - car3->rect().width() / 2, BORDER_H / 5 * 3 );
 
-    // to see a car statistics when a car is clicked
     foreach (Car *car, _garage)
     {
-        connect(car, SIGNAL(signalCarClicked(int)), this, SLOT(slotCarClicked(int)));
+        // set specific direction for this case to move car in different angle
+        car->setDirection(eInAngle);
+
+        // to see a car statistics when a car is clicked
+        connect(car, SIGNAL(signalCarClicked(int)), this, SLOT(slotCarClicked(int)), Qt::UniqueConnection);
     }
 }
 
 void Supervisor::startStopCase()
 {
+    static int remainingTime = OBSTACLE_RESPAWN;
+
     if (_activeCase == 1)
     {
         if (_isCaseStarted == false)
@@ -181,14 +189,41 @@ void Supervisor::startStopCase()
     else if (_activeCase == 2)
     {
         if (_isCaseStarted == false)
-        {
+        {           
+            _obstacleTimer->start(remainingTime);    // createObstacle() will be called every timeout
+
             // launch first obstacle immediately and then each OBSTACLE resp time
-            slotCreateObstacle();
-            _obstacleTimer->start(OBSTACLE_RESPAWN);    // createObstacle() will be called every timeout
+            if (_obstacleTimer->remainingTime() == OBSTACLE_RESPAWN)
+            {
+                slotCreateObstacle();
+            }
+
+            foreach (QGraphicsItem* item, this->items())
+            {
+                // find all obstacles in the scene
+                if (typeid(*item) == typeid(Obstacle))
+                {
+                    Obstacle* obstacle = (Obstacle*)item;
+
+                    obstacle->start();
+                }
+            }
         }
         else
         {
+            remainingTime = _obstacleTimer->remainingTime();
             _obstacleTimer->stop();
+
+            foreach (QGraphicsItem* item, this->items())
+            {
+                // find all obstacles in the scene
+                if (typeid(*item) == typeid(Obstacle))
+                {
+                    Obstacle* obstacle = (Obstacle*)item;
+
+                    obstacle->stop();
+                }
+            }
         }
     }
     else if (_activeCase == 3)
@@ -197,7 +232,6 @@ void Supervisor::startStopCase()
         {
             foreach (Car *car, _garage)
             {
-                car->setDirection(eInAngle);
                 //car->setRotation(car->rotation() -90 + qrand() % 180);
                 car->start();
             }
@@ -221,28 +255,32 @@ void Supervisor::changeSpeed(qint8 speed)
         switch (speed)
         {
         case 0:
-            car->setSpeed(eNoSpeed);
+            _speed = eSlow;
+            car->setSpeed(_speed);
             break;
         case 1:
-            car->setSpeed(eSlow);
+            _speed = eNormal;
+            car->setSpeed(_speed);
             break;
         case 2:
-            car->setSpeed(eNormal);
+            _speed = eFast;
+            car->setSpeed(_speed);
             break;
         case 3:
-            car->setSpeed(eFast);
+            _speed = eTurbo;
+            car->setSpeed(_speed);
             break;
         case 4:
-            car->setSpeed(eTurbo);
-            break;
-        case 5:
-            car->setSpeed(eUltraSound);
+            _speed = eUltraSound;
+            car->setSpeed(_speed);
             break;
         default:
             // do nothing
             break;
         }
     }
+
+    updateCarStatistic();
 }
 
 void Supervisor::keyPressEvent(QKeyEvent *event)
@@ -255,49 +293,55 @@ void Supervisor::keyPressEvent(QKeyEvent *event)
         switch (event->key())
         {        
         case Qt::Key_0:
-            car->setSpeed(eNoSpeed);
+            _speed = eNoSpeed;
+            car->setSpeed(_speed);
             break;
         case Qt::Key_1:
-            car->setSpeed(eSlow);
+            _speed = eSlow;
+            car->setSpeed(_speed);
             break;
         case Qt::Key_2:
-            car->setSpeed(eNormal);
+            _speed = eNormal;
+            car->setSpeed(_speed);
             break;
         case Qt::Key_3:
-            car->setSpeed(eFast);
+            _speed = eFast;
+            car->setSpeed(_speed);
             break;
         case Qt::Key_4:
-            car->setSpeed(eTurbo);
+            _speed = eTurbo;
+            car->setSpeed(_speed);
             break;
         case Qt::Key_5:
-            car->setSpeed(eUltraSound);
+            _speed = eUltraSound;
+            car->setSpeed(_speed);
             break;
         case Qt::Key_Up:
             // if car's front side still inside of a border
             if (car->y() > 0)
             {
-                car->moveForward();
+                car->moveForward(_speed);
             }
             break;
         case Qt::Key_Down:
             // if car's rear side still inside of a border
             if (car->y() + car->rect().height() < _border->rect().height())
             {
-                car->moveBackward();
+                car->moveBackward(_speed);
             }
             break;
         case Qt::Key_Left:
             // if car's left side still inside of a border
             if (car->x() > 0)
             {
-                car->moveLeft();
+                car->moveLeft(_speed);
             }
             break;
         case Qt::Key_Right:
             // if car's right side still inside of a border
             if (car->x() + car->rect().width() < _border->rect().width())
             {
-                car->moveRight();
+                car->moveRight(_speed);
             }
             break;
         default:
@@ -706,6 +750,8 @@ void Supervisor::slotCreateObstacle()
 
     // item has already been added to this scene by setting it as a child of a border which is aready in scene
     // do not need: this->addItem(obstacle);
+
+    _obstacleTimer->setInterval(OBSTACLE_RESPAWN);
 }
 
 void Supervisor::slotCarClicked(int carId)
@@ -717,11 +763,13 @@ void Supervisor::slotCarClicked(int carId)
 
 void Supervisor::init()
 {
-    _activeCase = 0;
-    _selectedCar = 0;
+    _activeCase = 0;    // 0 means NO active cases
+    _selectedCar = 0;   // 0 means NO selected cars
     _isCaseStarted = false;
     _border = nullptr;
+    _speed = eSlow;     // default speed
 
+    // order is importand. Should be after _selectedCar
     updateCarStatistic();
 
     foreach (QGraphicsItem* item, this->items())
@@ -775,6 +823,7 @@ void Supervisor::updateCarStatistic()
                 _ui->label_carY_value->setText(QString::number(car->y()));
                 _ui->label_carAngle_value->setText(QString::number(car->getRotation()));
                 _ui->label_carDirection_value->setText(QString::number(car->direction()));
+                _ui->label_carSpeed_value->setText(QString::number(car->getSpeed()));
                 break;
             }
         }
@@ -786,6 +835,7 @@ void Supervisor::updateCarStatistic()
         _ui->label_carY_value->clear();
         _ui->label_carAngle_value->clear();
         _ui->label_carDirection_value->clear();
+        _ui->label_carSpeed_value->clear();
     }
 }
 

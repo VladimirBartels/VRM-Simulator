@@ -27,6 +27,7 @@ Car::Car(qreal x, qreal y, qreal w, qreal h, QColor color, quint8 id, qint8 spee
     _lastPosition = eMiddle;
 
     setColor(_color);
+    setSpeed(_speed);
 
     // set(print) car id on a car
     qint8 textSize = this->rect().height() / 5;
@@ -45,23 +46,27 @@ void Car::setSpeed(const quint8 &speed)
 {
     _speed = speed;
 
-    if (_speed > eNoSpeed)
-    {
-        start();
-    }
-    else
+    if (_speed == eNoSpeed)
     {
         stop();
     }
+    else
+    {
+        _moveTimer->setInterval(MOVESPEED / _speed);
+    }
+}
+
+qint8 Car::getSpeed() const
+{
+    return _speed;
 }
 
 void Car::start()
 {
-    if (_speed)
+    if (_speed > eNoSpeed)
     {
-        _moveTimer->start(MOVESPEED / _speed);
+        _moveTimer->start();
         _isInMove = true;
-        move();
     }
 }
 
@@ -116,6 +121,26 @@ void Car::moveInAngle()
 {
     // this maps item's and parent's coordinate systems. Position should be relative and NOT absolute
     this->setPos(mapToParent(0, -MOVESTEP));
+}
+
+void Car::moveForward(quint8 speed)
+{
+    this->setPos(x(), y() - speed * MOVESTEP);
+}
+
+void Car::moveBackward(quint8 speed)
+{
+    this->setPos(x(), y() + speed * MOVESTEP);
+}
+
+void Car::moveLeft(quint8 speed)
+{
+    this->setPos(x() - speed * MOVESTEP, y());
+}
+
+void Car::moveRight(quint8 speed)
+{
+    this->setPos(x() + speed * MOVESTEP, y());
 }
 
 bool Car::isInMove()

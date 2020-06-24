@@ -55,21 +55,31 @@ public:
     bool sceneEvent(QEvent *event);
     void mousePressEvent(QGraphicsSceneMouseEvent *event);
 
-    // members/methods
-    void setSpeed(const quint8 &speed);
+    // members/methods    
     void setColor(QColor color);        // set any color
     void setDefaultColor();             // set color defined in constructor
+
     void start();                       // a car will move continuesly
     void stop();                        // a car will stop
     void rotate();                      // start smooth rotation during a turn
-    void moveForward();                 // move one step forward
-    void moveBackward();                // move one step backward
-    void moveLeft();                    // move one step left
-    void moveRight();                   // move one step right
+
+    void moveForward();                 // move one step forward (used with timer)
+    void moveBackward();                // move one step backward (used with timer)
+    void moveLeft();                    // move one step left (used with timer)
+    void moveRight();                   // move one step right (used with timer)
     void moveInAngle();                 // movement in rotation - only forward according to rotation angle
+
+    void moveForward(quint8 speed);     // move one step forward (used without timer)
+    void moveBackward(quint8 speed);    // move one step backward (used without timer)
+    void moveLeft(quint8 speed);        // move one step left (used without timer)
+    void moveRight(quint8 speed);       // move one step right (used without timer)
+
     bool isInMove();                    // check if a car is already moving
     qreal getRearLeftX();               // get x oordinate of rear left point depending of the angle
     qreal getRearLeftY();               // get y oordinate of rear left point depending of the angle
+
+    void setSpeed(const quint8 &speed);
+    qint8 getSpeed() const;
 
     quint16 getRotation();              // returns rotateio angle, convertor to default rect.Rotation. returns [0..359] grad
 
