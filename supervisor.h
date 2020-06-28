@@ -17,21 +17,30 @@ public:
     void createCase1();
     void createCase2();
     void createCase3();
-    void startStopCase();
-    void changeSpeed(qint8 speed);
+    void startStopCase();                       // starts/stops each case: every object (stops timer)
+    void changeSpeed(qint8 speed);              // change speed of the whole case (speed of each object)
 
     void keyPressEvent(QKeyEvent *event) override;
 
 public slots:
     void sceneChanged(const QList<QRectF> &);   // default slot from QGraphicsScene
-    void slotCreateObstacle();
-    void slotCarClicked(int carId);
+    void slotCreateObstacle();                  // slot is called every _obstacleTimer timeout
+    void slotCarClicked(int carId);             // slot is called when a car is selected (clicked)
 
 private:
     void init();                                        // set everything to initial state
-    qreal getLeftSideX(qreal parentW, qreal childW);    // get left side of a road/board
-    qreal getRightSideX(qreal parentW, qreal childW);   // get right side of a road/board
     void updateCarStatistic();                          // updating car statistic (coordinates, angles, direction etc)
+
+    // main features:
+    void collisionDetection(Car *car);                  // Collision Detection with obstacles and other cars
+    void bordersDetection(Car *car);                    // Borders detection
+    void obstacleAvoidanceSystem(Car *car);             // Obstacle Avoidance System
+    void carsAvoidanceSystem(Car *car);                 // Cars Avoidance Systems
+
+    // support functions
+    qreal getLeftLaneX(qreal parentW, qreal childW);    // get left lane x coordinate of a road/board
+    qreal getRightLaneX(qreal parentW, qreal childW);   // get right lane x coordinate of a road/board
+
     qreal getAngleBetweenPoints(qreal x1, qreal y1, qreal x2, qreal y2);
     qreal getDistanceBetweenPoints(qreal x1, qreal y1, qreal x2, qreal y2);
 
