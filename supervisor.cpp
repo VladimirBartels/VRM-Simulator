@@ -514,6 +514,10 @@ void Supervisor::sceneChanged(const QList<QRectF> &)
         // <<< ONLY FOR CASE 2 >>>
         if (_activeCase == 2)
         {
+            bool isObstacle = false;    // if there are any obstacles too close
+            const quint16 warningDistance = 250;
+            const quint16 maneuverDistance = 200;
+
             // Feature: Obstacle Avoidance Systems (Active or Passive + Warnings):
             foreach (QGraphicsItem* item, this->items())
             {
@@ -525,33 +529,66 @@ void Supervisor::sceneChanged(const QList<QRectF> &)
                     //qDebug() << "sceneChanged: obstacle is : " + QString::number(obstacle->x()) + " " + QString::number(obstacle->y()) + " " + QString::number(obstacle->rect().height()) + " " + QString::number(obstacle->rect().width());
                     //qDebug() << "sceneChanged: car is      : " + QString::number(car->x()) + " " + QString::number(car->y()) + " " + QString::number(car->rect().height()) + " " + QString::number(car->rect().width());
 
-                    // obstacles are close
-                    if (car->y()-250 <= obstacle->y())
+                    // obstacles are close - warn an obstacle
+                    if (car->y() - warningDistance <= obstacle->y())
                     {
-                        // if car and obstacle are on the same lane
+                        isObstacle = true;
+
+                        // obstacle can collide with a car
                         if ( (car->x() + car->rect().width() >= obstacle->x()) && (car->x() <= obstacle->x() + obstacle->rect().width()) )
-                        {
+                        {                            
+                            // change color of obstacle to warn a car
                             obstacle->setColor(QColor(255, 100, 0));    // orange warning color
 
-                            if (_ui->radioButton_auto->isChecked() && car->y()-200 <= obstacle->y())
-                            {
-                                //if obstacle on the left lane - move to right lane
+                            // obstacles are too close - start a maneuver
+                            if (_ui->radioButton_auto->isChecked() && car->y() - maneuverDistance <= obstacle->y())
+                            {                                
+                                // obstacle is on the left lane:
                                 if (car->x() < _border->rect().width() / 2)
                                 {
-                                    if (!car->isInMove())
+                                    // obstacle is more on the rigth side
+                                    if (obstacle->x() > car->x() + car->rect().width() / 2)
                                     {
-                                        // call shiftToRight()
-                                        car->setDirection(eRight);
-                                        car->start();
+                                        // a car can skirt obstacle from the left side (do not need to cross the lane)
+                                        if (!car->isInMove())
+                                        {
+                                            car->setDirection(eLeft);
+                                            car->start();
+                                        }
                                     }
+                                    // obstacle is in front of the car - move to right lane
+                                    else
+                                    {
+                                        if (!car->isInMove())
+                                        {
+                                            // call shiftToRight()
+                                            car->setDirection(eRight);
+                                            car->start();
+                                        }
+                                    }
+
                                 }
-                                //if obstacle on the right lane - move to left lane
+                                // obstacle is on the right lane:
                                 else
                                 {
-                                    if (!car->isInMove())
+                                    // obstacle is more on the rigth side
+                                    if (obstacle->x() + obstacle->rect().width() < car->x() + car->rect().width() / 2)
                                     {
-                                        car->setDirection(eLeft);
-                                        car->start();
+                                        // a car can skirt obstacle from the right side (do not need to cross the lane)
+                                        if (!car->isInMove())
+                                        {
+                                            car->setDirection(eRight);
+                                            car->start();
+                                        }
+                                    }
+                                    // obstacle is in front of the car - move to left lane
+                                    else
+                                    {
+                                        if (!car->isInMove())
+                                        {
+                                            car->setDirection(eLeft);
+                                            car->start();
+                                        }
                                     }
                                 }
                             }
@@ -565,19 +602,67 @@ void Supervisor::sceneChanged(const QList<QRectF> &)
                 }
             }
 
-            // if a car moved from right lane to left - stop it
+            // a car did skirt osbtacle from the left
+            if (car->x() + car->rect().width() / 2 <= getLeftSideX(BORDER_W, car->rect().width()))
+            {
+                // there are obstacle - wait
+                if (isObstacle == true)
+                {
+                    if (car->isInMove())
+                    {
+                        car->stop();
+                    }
+                }
+                // there were no or are no any obstacle more
+                else
+                {
+                    car->setDirection(eRight);
+                    car->start();
+                }
+            }
+            // a car did skirt osbtacle from the right
+            else if (car->x() - car->rect().width() / 2 >= getRightSideX(BORDER_W, car->rect().width()))
+            {
+                // there are obstacle - wait
+                if (isObstacle == true)
+                {
+                    if (car->isInMove())
+                    {
+                        car->stop();
+                    }
+                }
+                // there were no or are no any obstacle more
+                else
+                {
+                    car->setDirection(eLeft);
+                    car->start();
+                }
+            }
+
             if (car->x() == getLeftSideX(BORDER_W, car->rect().width()))
             {
+                // a car moved from right lane to left - stop it
                 if (car->isInMove() && car->direction() == eLeft)
                 {
                     car->stop();
                 }
+                // a car did skirt obstacle from left - stop it
+                else if (car->isInMove() && car->direction() == eRight)
+                {
+                    // TODO: restructure please
+                    car->stop();
+                }
             }
 
-            // if a car moved from let lane to right - stop it
             if (car->x() == getRightSideX(BORDER_W, car->rect().width()))
             {
+                // if a car moved from left lane to right - stop it
                 if (car->isInMove() && car->direction() == eRight)
+                {
+                    car->stop();
+                }
+                // a car did skirt obstacle from right - stop it
+                else if (car->isInMove() && car->direction() == eLeft)
                 {
                     car->stop();
                 }
@@ -742,10 +827,35 @@ void Supervisor::slotCreateObstacle()
     // relative to obstacle parent coordinates
     qreal obstacleWidth = 80;   // obstacle width
     qreal obstacleHeight = 80;  // obstacle height
-    qreal obstacleX = (rand() % 2 == 0 ? getLeftSideX(BORDER_W, obstacleWidth) : getRightSideX(BORDER_W, obstacleWidth)); // start x point inside of a parent (border): left or right lane
+    qreal obstacleX = 0;        // start x point inside of a parent (border)
     qreal obstacleY = 0;        // start y point inside of a parent (border): top of it
 
+    qreal leftSideX = getLeftSideX(BORDER_W, obstacleWidth);
+    qreal rightSideX = getRightSideX(BORDER_W, obstacleWidth);
+
+    switch (rand() % 4)
+    {
+        case 0:
+            obstacleX = leftSideX;
+        break;
+        case 1:
+            obstacleX = leftSideX + (rightSideX - leftSideX) / 3 * 1;
+        break;
+        case 2:
+            obstacleX = leftSideX + (rightSideX - leftSideX) / 3 * 2;
+        break;
+        case 3:
+            obstacleX = rightSideX;
+        break;
+        default:
+            // do nothing
+        break;
+    }
+
+    // firstly create obstacle inside of a parent
     Obstacle *obstacle = new Obstacle(0, 0, obstacleWidth, obstacleHeight, Qt::gray, _border);
+
+    // then set coordinates (move obstacle) inside of a parent (border)
     obstacle->setPos(obstacleX, obstacleY);
 
     // item has already been added to this scene by setting it as a child of a border which is aready in scene

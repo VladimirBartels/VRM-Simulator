@@ -65,8 +65,11 @@ void Car::start()
 {
     if (_speed > eNoSpeed)
     {
-        _moveTimer->start();
         _isInMove = true;
+        // start timer
+        _moveTimer->start();
+        // and move immediately, without waiting a timer timeout
+        move();
     }
 }
 
