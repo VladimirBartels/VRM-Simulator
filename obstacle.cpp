@@ -3,23 +3,25 @@
 #include <QDebug>
 
 #define LINEWIDTH 5     // line width of obstacle rect
-#define MOVESPEED 30    // speed of obstacle (every 30ms it moves down)
-#define MOVESTEP  3     // movestep for moving an obstacle on amount of pixels
+#define MOVESPEED 32    // speed of obstacle (every n ms it moves down)
+#define MOVESTEP  2     // movestep for moving an obstacle on amount of pixels
 
 
-Obstacle::Obstacle(qreal x, qreal y, qreal w, qreal h, QColor color, QGraphicsItem *parent) : QGraphicsRectItem(x, y, w, h, parent)
+Obstacle::Obstacle(qreal x, qreal y, qreal w, qreal h, qint8 speed, QColor color, QGraphicsItem *parent) : QGraphicsRectItem(x, y, w, h, parent)
 {
     qDebug() << "Obstacle::Obstacle";
 
     _color = color;
-    setColor(_color);
-
+    _speed = speed;
     _moveTimer = new QTimer;
 
-    // connect timer and move clot
-    connect(_moveTimer, SIGNAL(timeout()), this, SLOT(move()));
+    setColor(_color);
+    setSpeed(_speed);
 
-    _moveTimer->start(MOVESPEED);
+    start();
+
+    // connect timer and move slot
+    connect(_moveTimer, SIGNAL(timeout()), this, SLOT(move()));
 }
 
 void Obstacle::move()
@@ -32,6 +34,20 @@ void Obstacle::move()
     if (this->y() + this->rect().height() >= border->rect().height())
     {
         delete(this);
+    }
+}
+
+void Obstacle::setSpeed(const qint8 &speed)
+{
+    _speed = speed;
+
+    if (_speed == 0)
+    {
+        stop();
+    }
+    else
+    {
+        _moveTimer->setInterval(MOVESPEED / _speed);
     }
 }
 

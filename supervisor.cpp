@@ -12,7 +12,7 @@
 #define BORDER_W 400
 #define BORDER_H 600
 
-#define OBSTACLE_RESPAWN 3000   // obstacle respawn time, create obstacle every n seconds
+#define OBSTACLE_RESPAWN 3200   // obstacle respawn time, create obstacle every n seconds
 
 Supervisor::Supervisor(Ui::MainWindow *ui) : _ui(ui)
 {
@@ -22,7 +22,7 @@ Supervisor::Supervisor(Ui::MainWindow *ui) : _ui(ui)
     this->setFocus();
     this->setStickyFocus(true);
 
-    _obstacleTimer = new QTimer;
+    _obstacleTimer = new QTimer();
 
     // connect default changed signal with our sceneChanged slot
     connect(this, SIGNAL(changed(const QList<QRectF> &)), this, SLOT(sceneChanged(const QList<QRectF> &)));
@@ -105,11 +105,10 @@ void Supervisor::createCase2()
         connect(car, SIGNAL(signalCarClicked(int)), this, SLOT(slotCarClicked(int)), Qt::UniqueConnection);
     }
 
-    _obstacleTimer->setInterval(OBSTACLE_RESPAWN);
+    _obstacleTimer->setInterval(_speed ? (OBSTACLE_RESPAWN / _speed) : OBSTACLE_RESPAWN);
 
     // connect obstacleTimer with createObstacle slot
     connect(_obstacleTimer, SIGNAL(timeout()), this, SLOT(slotCreateObstacle()), Qt::UniqueConnection);
-
 }
 
 void Supervisor::createCase3()
@@ -166,7 +165,7 @@ void Supervisor::createCase3()
 
 void Supervisor::startStopCase()
 {
-    static int remainingTime = OBSTACLE_RESPAWN;
+    static int remainingTime = _speed ? (OBSTACLE_RESPAWN / _speed) : OBSTACLE_RESPAWN;
 
     if (_activeCase == 1)
     {
@@ -189,11 +188,11 @@ void Supervisor::startStopCase()
     else if (_activeCase == 2)
     {
         if (_isCaseStarted == false)
-        {           
+        {
             _obstacleTimer->start(remainingTime);    // createObstacle() will be called every timeout
 
             // launch first obstacle immediately and then each OBSTACLE resp time
-            if (_obstacleTimer->remainingTime() == OBSTACLE_RESPAWN)
+            if (_obstacleTimer->remainingTime() == (_speed ? (OBSTACLE_RESPAWN / _speed) : OBSTACLE_RESPAWN))
             {
                 slotCreateObstacle();
             }
@@ -211,6 +210,7 @@ void Supervisor::startStopCase()
         }
         else
         {
+            // when clicked on "Stop", save remaining obstacle time. Reset it back by click on "Start"
             remainingTime = _obstacleTimer->remainingTime();
             _obstacleTimer->stop();
 
@@ -250,35 +250,48 @@ void Supervisor::startStopCase()
 
 void Supervisor::changeSpeed(qint8 speed)
 {
+    // convert slider position to speed value
+    switch (speed)
+    {
+    case 0:
+        _speed = eSlow;
+        break;
+    case 1:
+        _speed = eNormal;
+        break;
+    case 2:
+        _speed = eFast;
+        break;
+    case 3:
+        _speed = eTurbo;
+        break;
+    case 4:
+        _speed = eUltraSound;
+        break;
+    default:
+        // do nothing
+        break;
+    }
+
+    // change speed for all cars
     foreach (Car *car, _garage)
     {
-        switch (speed)
+        car->setSpeed(_speed);
+    }
+
+    // change speed for all obstacles (if there are any)
+    foreach (QGraphicsItem* item, this->items())
+    {
+        // find all obstacles in the scene
+        if (typeid(*item) == typeid(Obstacle))
         {
-        case 0:
-            _speed = eSlow;
-            car->setSpeed(_speed);
-            break;
-        case 1:
-            _speed = eNormal;
-            car->setSpeed(_speed);
-            break;
-        case 2:
-            _speed = eFast;
-            car->setSpeed(_speed);
-            break;
-        case 3:
-            _speed = eTurbo;
-            car->setSpeed(_speed);
-            break;
-        case 4:
-            _speed = eUltraSound;
-            car->setSpeed(_speed);
-            break;
-        default:
-            // do nothing
-            break;
+            Obstacle* obstacle = (Obstacle*)item;
+
+            obstacle->setSpeed(_speed);
         }
     }
+
+    _obstacleTimer->setInterval(_speed ? (OBSTACLE_RESPAWN / _speed) : OBSTACLE_RESPAWN);
 
     updateCarStatistic();
 }
@@ -522,6 +535,7 @@ void Supervisor::slotCreateObstacle()
     qreal leftSideX = getLeftLaneX(BORDER_W, obstacleWidth);
     qreal rightSideX = getRightLaneX(BORDER_W, obstacleWidth);
 
+    // calculate random obstacle position on the road/board
     switch (rand() % 4)
     {
         case 0:
@@ -542,7 +556,7 @@ void Supervisor::slotCreateObstacle()
     }
 
     // firstly create obstacle inside of a parent
-    Obstacle *obstacle = new Obstacle(0, 0, obstacleWidth, obstacleHeight, Qt::gray, _border);
+    Obstacle *obstacle = new Obstacle(0, 0, obstacleWidth, obstacleHeight, _speed, Qt::gray, _border);
 
     // then set coordinates (move obstacle) inside of a parent (border)
     obstacle->setPos(obstacleX, obstacleY);
@@ -550,7 +564,8 @@ void Supervisor::slotCreateObstacle()
     // item has already been added to this scene by setting it as a child of a border which is aready in scene
     // do not need: this->addItem(obstacle);
 
-    _obstacleTimer->setInterval(OBSTACLE_RESPAWN);
+    // set interval back to default value if it was set to remaining time by clicking "Start\Stop" button.
+    _obstacleTimer->setInterval(_speed ? (OBSTACLE_RESPAWN / _speed) : OBSTACLE_RESPAWN);
 }
 
 void Supervisor::slotCarClicked(int carId)
