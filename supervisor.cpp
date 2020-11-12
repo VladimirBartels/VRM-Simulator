@@ -33,6 +33,21 @@ Supervisor::Supervisor(Ui::MainWindow *ui) : _ui(ui)
     _ui->radioButton_manual->setChecked(true);
 }
 
+Supervisor::~Supervisor()
+{
+    if (_obstacleTimer)
+    {
+        delete _obstacleTimer;
+        _obstacleTimer = nullptr;
+    }
+
+    if (_border)
+    {
+        delete _border;
+        _border = nullptr;
+    }
+}
+
 void Supervisor::createCase1()
 {
     init(); // set initial state
@@ -279,19 +294,22 @@ void Supervisor::changeSpeed(qint8 speed)
         car->setSpeed(_speed);
     }
 
-    // change speed for all obstacles (if there are any)
-    foreach (QGraphicsItem* item, this->items())
+    if (_activeCase == 2)
     {
-        // find all obstacles in the scene
-        if (typeid(*item) == typeid(Obstacle))
+        // change speed for all obstacles (if there are any)
+        foreach (QGraphicsItem* item, this->items())
         {
-            Obstacle* obstacle = (Obstacle*)item;
+            // find all obstacles in the scene
+            if (typeid(*item) == typeid(Obstacle))
+            {
+                Obstacle* obstacle = (Obstacle*)item;
 
-            obstacle->setSpeed(_speed);
+                obstacle->setSpeed(_speed);
+            }
         }
-    }
 
-    _obstacleTimer->setInterval(_speed ? (OBSTACLE_RESPAWN / _speed) : OBSTACLE_RESPAWN);
+        _obstacleTimer->setInterval(_speed ? (OBSTACLE_RESPAWN / _speed) : OBSTACLE_RESPAWN);
+    }
 
     updateCarStatistic();
 }
@@ -451,7 +469,7 @@ void Supervisor::sceneChanged(const QList<QRectF> &)
 {
     //qDebug() << "sceneChanged: Border is: " + QString::number(_border->x()) + " " + QString::number(_border->y()) + " " + QString::number(_border->rect().height()) + " " + QString::number(_border->rect().width());
 
-    // update statistics only fot selected car (_selectedCar)
+    // update statistics only for selected car (_selectedCar)
     updateCarStatistic();
 
     foreach (Car *car, _garage)
@@ -586,6 +604,7 @@ void Supervisor::init()
     // order is importand. Should be after _selectedCar
     updateCarStatistic();
 
+    // delete all the graphics items like borders, cars, lines etc
     foreach (QGraphicsItem* item, this->items())
     {
         delete item;

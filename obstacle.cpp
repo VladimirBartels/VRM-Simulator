@@ -24,6 +24,15 @@ Obstacle::Obstacle(qreal x, qreal y, qreal w, qreal h, qint8 speed, QColor color
     connect(_moveTimer, SIGNAL(timeout()), this, SLOT(move()));
 }
 
+Obstacle::~Obstacle()
+{
+    if (_moveTimer)
+    {
+        delete _moveTimer;
+        _moveTimer = nullptr;
+    }
+}
+
 void Obstacle::move()
 {
     this->moveBy(0, 3); // move by number of pixels

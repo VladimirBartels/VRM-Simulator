@@ -9,6 +9,7 @@ class Border : public QObject, public QGraphicsRectItem
 public:
     Border(QColor color);
     Border(qreal x, qreal y, qreal w, qreal h, QColor color);
+    ~Border();
 
     void keyPressEvent(QKeyEvent *event);
     void mouseMoveEvent(QGraphicsSceneMouseEvent *event);

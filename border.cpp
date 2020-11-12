@@ -11,14 +11,29 @@ Border::Border(QColor color) : QGraphicsRectItem()
 
 Border::Border(qreal x, qreal y, qreal w, qreal h, QColor color) : QGraphicsRectItem(x, y, w, h)
 {
+    qreal width = this->rect().width();
+    qreal height = this->rect().height();
+
     this->setFlag(QGraphicsItem::ItemIsFocusable);
     this->setFocus();
 
-    _isStrip = true;
-    _color = color;
+    _isStrip = true;    // by default the line is visible
+    _color = color;    
+
+    // create a strip line
+    _strip = new QGraphicsLineItem(width / 2, 0, width / 2, height, this);
+    _strip->setPen(QPen(QBrush(_color), LINEWIDTH, Qt::DashLine));
 
     setColor(_color);
-    setStrip(_isStrip);
+}
+
+Border::~Border()
+{
+    if (_strip != nullptr)
+    {
+        //delete _strip; Strip is or will be deleted in Init() by Supervisor
+        _strip = nullptr;
+    }
 }
 
 void Border::keyPressEvent(QKeyEvent *)
@@ -47,20 +62,5 @@ void Border::setStrip(bool isStrip)
 {
     _isStrip = isStrip;
 
-    if (_isStrip == true)
-    {
-        qreal width = this->rect().width();
-        qreal height = this->rect().height();
-
-        _strip = new QGraphicsLineItem(width / 2, 0, width / 2, height, this);
-        _strip->setPen(QPen(QBrush(_color), LINEWIDTH, Qt::DashLine));
-    }
-    else
-    {
-        if (_strip != nullptr)
-        {
-            delete _strip;
-            _strip = nullptr;
-        }
-    }
+    _strip->setVisible(_isStrip);
 }

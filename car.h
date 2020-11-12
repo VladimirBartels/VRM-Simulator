@@ -50,6 +50,7 @@ class Car : public QObject, public QGraphicsRectItem
     Q_OBJECT
 public:
     Car(qreal x, qreal y, qreal w, qreal h, QColor color, quint8 id, qint8 speed = 0, QGraphicsItem *parent = Q_NULLPTR);
+    ~Car();
 
     // events:
     bool sceneEvent(QEvent *event);
@@ -90,7 +91,7 @@ public:
     void setCollisionCounter(const qint32 &collisionCounter);
     void incCollisionCounter();
 
-    bool isInCollision() const;
+    bool isInCollision() const;         // check if a car is in collision with other objects
     void setIsInCollision(bool isInCollision);
 
     void setRotationAngle(const qint16 &rotationAngle);

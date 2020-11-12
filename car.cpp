@@ -42,6 +42,15 @@ Car::Car(qreal x, qreal y, qreal w, qreal h, QColor color, quint8 id, qint8 spee
     qDebug() << "A car  is created";
 }
 
+Car::~Car()
+{
+    if (_moveTimer)
+    {
+        delete _moveTimer;
+        _moveTimer = nullptr;
+    }
+}
+
 void Car::setSpeed(const quint8 &speed)
 {
     _speed = speed;

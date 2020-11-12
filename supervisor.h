@@ -14,6 +14,7 @@ class Supervisor : public QGraphicsScene
     Q_OBJECT
 public:
     Supervisor(Ui::MainWindow *ui);
+    ~Supervisor();
     void createCase1();
     void createCase2();
     void createCase3();
